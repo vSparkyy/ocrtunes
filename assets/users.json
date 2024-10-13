@@ -1,1 +1,1 @@
-{"TestUser1": {"full_name": ["Test", "User"], "dob": "04/10/07", "username": "TestUser1", "password": "test123"}}
+{"sparky": {"username": "sparky", "password": "123", "full_name": ["sparky", "voltz"], "dob": "04/10/2007", "favourite_artist": ".", "favourite_genre": "Rock"}}
