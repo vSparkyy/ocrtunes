@@ -1,0 +1,116 @@
+[
+    {
+        "name": "Me N my Kup",
+        "artist": "Ken Carson",
+        "genre": "Rap",
+        "length": "3:55"
+    },
+    {
+        "name": "Breathe",
+        "artist": "Yeat",
+        "genre": "Rap",
+        "length": "2:51"
+    },
+    {
+        "name": "90210",
+        "artist": "Travis Scott",
+        "genre": "Rap",
+        "length": "5:40"
+    },
+    {
+        "name": "Miss The Rage",
+        "artist": "Trippie Red",
+        "genre": "Rap",
+        "length": "3:57"
+    },
+    {
+        "name": "Levitating",
+        "artist": "Dua Lipa",
+        "genre": "Pop",
+        "length": "3:41"
+    },
+    {
+        "name": "Just Dance",
+        "artist": "Lady Gaga",
+        "genre": "Pop",
+        "length": "4:02"
+    },
+    {
+        "name": "Smooth Criminal",
+        "artist": "Michael Jackson",
+        "genre": "Pop",
+        "length": "4:12"
+    },
+    {
+        "name": "Kill Bill",
+        "artist": "SZA",
+        "genre": "Pop",
+        "length": "2:36"
+    },
+    {
+        "name": "Easy on me",
+        "artist": "Adele",
+        "genre": "Pop",
+        "length": "3:46"
+    },
+    {
+        "name": "Unnamed1",
+        "artist": "Sade",
+        "genre": "RNB",
+        "length": "0:00"
+    },
+    {
+        "name": "Unnamed2",
+        "artist": "Usher",
+        "genre": "RNB",
+        "length": "0:00"
+    },
+    {
+        "name": "Nights",
+        "artist": "Frank Ocean",
+        "genre": "RNB",
+        "length": "0:00"
+    },
+    {
+        "name": "Unnamed3",
+        "artist": "Prince",
+        "genre": "RNB",
+        "length": "0:00"
+    },
+    {
+        "name": "Unnamed4",
+        "artist": "Rich Amiri",
+        "genre": "RNB",
+        "length": "0:00"
+    },
+    {
+        "name": "Unnamed5",
+        "artist": "Foo Fighters",
+        "genre": "Rock",
+        "length": "0:00"
+    },
+    {
+        "name": "Unnamed6",
+        "artist": "Led Zeppelin",
+        "genre": "Rock",
+        "length": "0:00"
+    },
+    {
+        "name": "Unnamed7",
+        "artist": "Nirvana",
+        "genre": "Rock",
+        "length": "0:00"
+    },
+    {
+        "name": "Unnamed8",
+        "artist": "Radiohead",
+        "genre": "Rock",
+        "length": "0:00"
+    },
+    {
+        "name": "505",
+        "artist": "Arctic Monkeys",
+        "genre": "Rock",
+        "length": "0:00"
+    }
+]
