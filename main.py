@@ -9,7 +9,7 @@ pygame.init()
 pygame.key.set_repeat(250, 50)
 
 clock = pygame.time.Clock()
-current_scene = scenes.PlaylistViewer()
+current_scene = scenes.MainMenu()
 
 while True:
     clock.tick(60)
