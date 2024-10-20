@@ -25,7 +25,6 @@ ASSETS = {
 }
 BUTTON_FONT = pygame.font.Font(ASSETS["REGULAR"], 20)
 
-
 class UIElement:
     def __init__(self, x, y, width, height):
         self.x = x
@@ -40,23 +39,31 @@ class UIElement:
         self.current_colour = self.bg_colour
 
     def handle_event(self, event):
-        pass
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.rect.collidepoint(event.pos):
+                self.active = not self.active
 
     def update(self):
-        pass
+        self.current_colour = self.active_colour if self.active else self.bg_colour
 
     def draw(self, screen):
-        pass
+        pygame.draw.rect(screen, self.current_colour, self.rect, 0, 5)
 
 class Button(UIElement):
-    def __init__(self, x, y, width, height, text='', background=True, redirect=None, icon=None):
+    def __init__(self, x, y, width, height, text='', background=True, redirect=None, icon=None, hover=None, hover_pos="DEFAULT"):
         super().__init__(x, y, width, height)
-        if icon:
-            self.icon = pygame.image.load(icon)
-        else:
-            self.icon = None
+        self.hover_colour = None
+        self.hover_pos = (self.rect.x, self.rect.y) if hover_pos == "DEFAULT" else hover_pos
+        self.icon = pygame.image.load(icon) if icon else None
+        try:
+            self.hover = pygame.image.load(hover)
+        except:
+            self.hover = None
+            if hover:
+                self.hover_colour = hover
+
         self.redirect = redirect
-        self.changed = False
+        self.hovering = False
         self.text = text
         self.background = background
         self.text_colour = COLOURS["WHITE"] if self.background else COLOURS["BLACK"]
@@ -65,13 +72,19 @@ class Button(UIElement):
         self.icon = pygame.image.load(icon)
 
     def handle_event(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        super().handle_event(event)
+        if event.type == pygame.MOUSEMOTION:
             if self.rect.collidepoint(event.pos):
-                self.active = True
+                if self.hover_colour or self.hover:
+                    self.hovering = True
+            else:
+                self.hovering = False
 
     def update(self):
         self.txt_surface = self.font.render(self.text, True, self.text_colour)
         self.current_colour = self.active_colour if self.active else self.bg_colour
+        if self.hovering and self.hover_colour:
+            self.current_colour = self.hover_colour
         self.active = False
         width = max(self.width, self.txt_surface.get_width()+10)
         self.rect.w = width
@@ -83,6 +96,9 @@ class Button(UIElement):
             screen.blit(self.txt_surface, (self.rect.x + (self.rect.width - self.txt_surface.get_width()) // 2, self.rect.y + (self.rect.height - self.txt_surface.get_height()) // 2))
         else:
             screen.blit(self.icon, (self.rect.x, self.rect.y))
+
+        if self.hovering and self.hover:
+            screen.blit(self.hover, self.hover_pos)
 
 class TextBox(UIElement):
     def __init__(self, x, y, width, height, text='', max_length=float('inf'), background=True, editable=False, border_radius=5):
@@ -135,13 +151,15 @@ class SearchBox(TextBox):
         self.centred = False
     
     def handle_event(self, event):
-        super().handle_event(event)
         if not self.active:
             self.selected = None
 
         for item, rect in self.search_rects:
-            if event.type == pygame.MOUSEBUTTONDOWN and rect.collidepoint(event.pos):
-                self.selected = item
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if rect.collidepoint(event.pos) and self.active:
+                    self.selected = item
+
+        super().handle_event(event)
 
     def update(self):
         super().update()
@@ -177,14 +195,12 @@ class DropDown(UIElement):
         self.get_option_rects()
 
     def handle_event(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if self.rect.collidepoint(event.pos):
-                self.active = not self.active
-            if self.active:
-                for _, rect in self.option_rects:
-                    if rect.collidepoint(event.pos):
-                        self.selected, self.listed_options[self.option_rects.index((_, rect))] = self.listed_options[self.option_rects.index((_, rect))], self.selected
-                        self.active = False
+        super().handle_event(event)
+        if self.active:
+            for _, rect in self.option_rects:
+                if rect.collidepoint(event.pos):
+                    self.selected, self.listed_options[self.option_rects.index((_, rect))] = self.listed_options[self.option_rects.index((_, rect))], self.selected
+                    self.active = False
 
     def update(self):
         self.dd_colour = self.bg_colour
@@ -212,7 +228,7 @@ class DropDown(UIElement):
             self.option_rects.append((option, rect))
         
 class ItemList(UIElement):
-    def __init__(self, x, y, width, height, items, max_items=4):
+    def __init__(self, x, y, width, height, items, max_items=4, offset=20):
         super().__init__(x, y, width, height)
         self.items = items
         self.font = BUTTON_FONT
@@ -222,7 +238,7 @@ class ItemList(UIElement):
         self.active_colour = self.slider_colour
         self.text_colour = COLOURS["BLACK"]
         self.scene_colour = COLOURS["WHITE"]
-        self.offset = 20
+        self.offset = offset
         self.max_items = max_items
         self.selected = None
         self.dy = 0
@@ -341,7 +357,6 @@ class Playlist():
         self.font = BUTTON_FONT
         self.active = False
         self._process_info()
-        self.image = pygame.image.load(ASSETS["BASE_PLAYLIST_IMG"])
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -352,7 +367,10 @@ class Playlist():
         for v in self.info.values():
             for k, val in v.items():
                 if k == "img":
-                    self.image = pygame.image.load(val)
+                    try:
+                        self.image = pygame.image.load(val)
+                    except:
+                        self.image = pygame.image.load(ASSETS["BASE_PLAYLIST_IMG"])
                 elif k == "songs":
                     self.info = {
                         "Name": list(self.info.keys())[0],
@@ -368,6 +386,9 @@ class Playlist():
 
     def update_rect(self, rect):
         self.rect = rect
+    
+    def update_image(self, img):
+        self.image = pygame.image.load(img)
 
     def get_text(self):
         self.txt = "\n".join([f"{k}: {v}" for k, v in self.info.items()])

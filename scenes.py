@@ -4,6 +4,7 @@ import os
 import random
 import json
 from datetime import datetime
+from file_handler import handle_image_change
 
 pygame.init()
 
@@ -21,9 +22,12 @@ ASSETS = {
     "PLAYLIST_BG": os.path.join(BASE_PATH, "assets/backgrounds/playlists.png"),
     "PLAYLIST_VIEW": os.path.join(BASE_PATH, "assets/backgrounds/playlist_viewer.png"),
     "PLAYLIST_INFO": os.path.join(BASE_PATH, "assets/backgrounds/playlist_info.png"),
+    "SETTINGS_BG": os.path.join(BASE_PATH, "assets/backgrounds/settings.png"),
     "DEFAULT": os.path.join(BASE_PATH, "assets/images/default.png"),
     "BIN": os.path.join(BASE_PATH, "assets/images/bin.png"),
+    "SORT": os.path.join(BASE_PATH, "assets/images/sort.png"),
     "CROSS": os.path.join(BASE_PATH, "assets/images/cross.png"),
+    "CHANGE_IMG": os.path.join(BASE_PATH, "assets/images/change_image.png"),
     "EDIT": os.path.join(BASE_PATH, "assets/images/edit.png"),
     "USERS": os.path.join(BASE_PATH, "assets/users.json"),
     "PLAYLISTS": os.path.join(BASE_PATH, "assets/playlists.json"),
@@ -97,16 +101,23 @@ class MainMenu(Scene):
                         }
 
                     if (result := self.validate_login(info)) is True:
-                        globals()["tutorial"].username = info['username']
-                        globals()["library"].username = info['username']
-                        globals()["playlist_maker"].username = info['username']
-                        globals()["playlist_viewer"].username = info['username']
-                        self.next_scene = globals()[element.redirect]
+                        self._reset()
+                        if self.users[info['username']].get('ADMIN', {}):
+                            self.next_scene = globals()["admin_panel"]
+                        else:
+                            # update username across all scenes
+                            globals()["tutorial"].username = info['username']
+                            globals()["library"].username = info['username']
+                            globals()["playlist_maker"].username = info['username']
+                            globals()["playlist_viewer"].username = info['username']
+                            globals()["settings"].username = info['username']
+                            self.next_scene = globals()[element.redirect]
                     else:
                         self.error_text.text = result[1]
 
     def update(self):
         super().update()
+        # particle manager
         if len(self.particles) <= 4:
             self.particles.append(
                 [
@@ -137,6 +148,13 @@ class MainMenu(Scene):
         for particle in particles_to_remove:
             self.particles.remove(particle)
 
+    def _reset(self):
+        self.l_username.text = "Username"
+        self.l_password.text = "Password"
+        self.s_username.text = "Username"
+        self.s_password.text = "Password"
+        self.s_confirm_password.text = "Confirm Password"
+
     def validate_login(self, info):
         self.users = {}
 
@@ -164,7 +182,7 @@ class MainMenu(Scene):
                 return (False, "Username already exists")
             
             with open(ASSETS['USERS'], 'w') as f:
-                json.dump(self.users, f)
+                json.dump(self.users, f, indent=4)
 
         return True
 
@@ -221,7 +239,7 @@ class Tutorial(Scene):
                             users = json.load(f)
                             users.pop(self.username)
                         with open(ASSETS['USERS'], 'w') as f:
-                            json.dump(users, f)
+                            json.dump(users, f, indent=4)
                         self.next_scene = globals()[element.redirect]
 
     def update(self):
@@ -283,45 +301,56 @@ class Tutorial(Scene):
             users = json.load(f)
         users[self.username].update(info)
         with open(ASSETS['USERS'], 'w') as f:
-            json.dump(users, f)
+            json.dump(users, f, indent=4)
 
 class Library(Scene):
     def __init__(self):
         super().__init__()
         self.songs = self._get_song_list()
-        self.username = "Sparky"
+        self.init = True
         self.ui_elements = [
             (song_list:= ui.ItemList(180, 400, 750, 50, items=self.songs, max_items=7)),
             ui.TextBox(520, 350, 100, 50, text=f"Title{' '*35}Artist{' '*32}Genre{' '*30}Duration", background=False),
-            ui.Button(0, 186, 200, 50, text="Make Playlist", background=False, redirect="playlist_maker"),
-            ui.Button(0, 238, 200, 50, text="My Playlists", background=False, redirect="playlist_viewer"),
-            ui.Button(0, 783, 200, 50, text="Settings", background=False),
+            ui.Button(0, 186, 200, 50, text="Home", background=False),
+            ui.Button(0, 238, 200, 50, text="Make Playlist", background=False, redirect="playlist_maker"),
+            ui.Button(0, 288, 200, 50, text="My Playlists", background=False, redirect="playlist_viewer"),
+            ui.Button(0, 783, 200, 50, text="Settings", background=False, redirect="settings"),
             ui.Button(0, 833, 200, 50, text="Log Out", background=False, redirect="main_menu"),
-            (search:= ui.SearchBox(250, 18, 760, 60, reference=self._song_list, background=False)),
+            (sort_name:= ui.Button(255, 362, 50, 50, icon=ASSETS["SORT"], background=False)),
+            (sort_length:= ui.Button(937, 362, 50, 50, icon=ASSETS["SORT"], background=False)),
             (rock:= ui.Button(172, 170, 200, 100, text="Rock", background=False)),
             (rap:= ui.Button(325, 170, 200, 100, text="Rap", background=False)),
             (pop:= ui.Button(475, 170, 200, 100, text="Pop", background=False)),
             (rnb:= ui.Button(630, 170, 200, 100, text="RNB", background=False)),
+            (search:= ui.SearchBox(250, 18, 760, 60, reference=self._song_list, background=False)),
             (artist:= ui.TextBox(1055, 110, 300, 50, text="Artist", editable=True, max_length=22)),
             (genre:= ui.DropDown(1250, 170, 60, 40, options=["Rock", "Pop", "RNB", "Rap"], selected="Genre")),
             (length:= ui.TextBox(1090, 170, 100, 40, text="Length(m)", editable=True, max_length=2)),
             (song_num:= ui.DropDown(1190, 170, 60, 40, options=[str(i) for i in range(1, 6)], selected="Songs")),
             (confirm:= ui.Button(1055, 415, 300, 30, text="Confirm")),
             (error_text:= ui.TextBox(240, 70, 760, 50, text="", background=False)),
+            (playlists:= ui.ItemList(1080, 550, 250, 30, items=[], max_items=5, offset=12)),
+            (artist2:= ui.TextBox(1080, 775, 250, 50, text="Artist", editable=True, max_length=22)),
+            (success_text:= ui.TextBox(240, 70, 760, 50, text="", background=False)),
         ]
         self.artist = artist
+        self.artist2 = artist2
+        self.playlists = playlists
         self.confirm = confirm
         self.error_text = error_text
+        self.success_text = success_text
         self.genre = genre
         self.length = length
         self.song_num = song_num
+        self.sort_name = sort_name
+        self.sort_length = sort_length
         self.rock = rock
         self.pop = pop
         self.rnb = rnb
         self.rap = rap
         self.genres = [self.rock, self.pop, self.rnb, self.rap]
         self.song_list = song_list
-        self.song_list.scene_colour = (242, 245, 254)
+        self.song_list.scene_colour = ui.COLOURS["WHITE"]
         self.search = search
         for element in self.ui_elements:
             if element in self.genres:
@@ -330,7 +359,9 @@ class Library(Scene):
                 element.font = pygame.font.Font(ui.ASSETS["BOLD"], 20)
         
         self.error_text.text_colour = ui.COLOURS["RED"]
+        self.success_text.text_colour = ui.COLOURS["GREEN"]
         self.error_text.font = pygame.font.Font(ui.ASSETS["BOLD"], 20)
+        self.success_text.font = pygame.font.Font(ui.ASSETS["BOLD"], 20)
     
     def _generate_playlist(self):
         playlist = []
@@ -364,37 +395,65 @@ class Library(Scene):
             return
 
         return playlist
+    
+    def _sort_songs(self, by):
+        formatted_songs = []
+        for song in self.songs:
+            split = song.split("  ")
+            formatted_songs.append([s for s in split if s != '' and s != ' '])
+        if by == "name":
+            formatted_songs.sort()
+        elif by == "length":
+            formatted_songs.sort(key=lambda x: x[3].split(":")[0]*60 + x[3].split(":")[1])
+
+        self.song_list.items = self._get_song_list(songs=formatted_songs)
+        self._song_list
+            
 
     def _parse_song_length(self, song):
-        minutes, seconds = map(int, song['length'].split(":"))
+        minutes, seconds = song['length'].split(":")
+        minutes, seconds = int(minutes), int(seconds)
         return minutes + seconds / 60
 
-    def _get_song_list(self):
+    def _get_song_list(self, songs=None):
         final_list = []
         space_width = ui.BUTTON_FONT.render(" ", True, (0, 0, 0)).get_width()
 
-        with open(ASSETS["SONGS"], "r") as f:
-            self._song_list = json.load(f)
+        if not songs:
+            self._song_list = self._load_songs()
+        else:
+            self._song_list = [
+                {
+                    "name": song[0].strip(),
+                    "artist": song[1].strip(),
+                    "genre": song[2].strip(),
+                    "length": song[3].strip()
+                }
+                for song in songs
+            ]
 
         for song in self._song_list:
             entry = ""
-            for value in song.values():
+            if type(song) == dict:
+                song = song.values()
+            for value in song:
                 entry += value
                 font_offset = ui.BUTTON_FONT.size(value)[0]
                 entry += " " * ((space_width*45 - font_offset)//space_width)
             final_list.append(entry)
 
-        for song in self._song_list:
-            song.pop("genre", None)
-            song.pop("length", None)
-
-        self._song_list.sort(key=lambda x: x["name"])
-
         return final_list
     
-    def _save_playlist(self, playlist):
+    def _load_songs(self):
+        with open(ASSETS["SONGS"], "r") as f:
+            return json.load(f)
+
+    def _get_playlists(self):
         with open(ASSETS["PLAYLISTS"], "r") as f:
-            users = json.load(f)
+            return json.load(f)
+    
+    def _save_playlist(self, playlist):
+        users = self._get_playlists()
 
         if self.username not in users:
             users[self.username] = {}
@@ -408,31 +467,84 @@ class Library(Scene):
         users[self.username][f"My Playlist #{length}"]["img"] = ASSETS["DEFAULT"]
 
         with open(ASSETS["PLAYLISTS"], "w") as f:
-            json.dump(users, f)
+            json.dump(users, f, indent=4)
 
         globals()["playlist_viewer"].new = True
 
+    def _export_playlist(self, playlist):
+        num = 1
+        path = os.path.join(BASE_PATH, f"export{num}.txt")
+        while os.path.exists(path):
+            num += 1
+            path = os.path.join(BASE_PATH, f"export{num}.txt")
+        with open(path, "w") as f:
+            if self.playlists.selected:
+                f.write(f"{self.playlists.selected}\n{'-'*len(self.playlists.selected)}\n\n")
+            else:
+                f.write(f"{self.artist2.text.title()}\n{'-'*len(self.artist2.text)}\n\n")
+            for i, song in enumerate(playlist):
+                f.write("\n".join(f"{key}: {value}" for key, value in song.items()))
+                if i < len(playlist) - 1:
+                    f.write("\n\n")
+
+        self.playlists.selected = None
+        self.artist2.text = self.artist2.org_text
+        return num
+
+    def _reset_playlists(self):
+        if self.username not in self._get_playlists():
+            self.playlists.items = []
+            return
+        self.playlists.items = self._get_playlists()[self.username].keys()
+        self.playlists.dy = 0
+        self.playlists.update_slider()
+
+    def _get_artist_playlists(self):
+        songs = self._load_songs()
+        final = []
+        for song in songs:
+            if song['artist'].lower() == self.artist2.text.lower():
+                final.append(song)
+        return final
+
     def process_input(self, events):
         for event in events:
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                self.error_text.text = ""
+                self.success_text.text = ""
             for element in self.ui_elements:
                 element.handle_event(event)
-                if element in [self.genre, self.song_num, self.artist, self.length]:
-                    if element.active:
-                        self.error_text.text = ""
-                        self.confirm.text = "Confirm"
                 if type(element) == ui.Button and element.active:
                     if element == self.confirm:
                         playlist = self._generate_playlist()
                         if playlist:
                             self._save_playlist(playlist)
-                            self.confirm.text = "Playlist Saved!"
+                            self.success_text.text = "Playlist Saved!"
                     if element.text == "Make Playlist":
                         globals()["playlist_maker"]._reset()
                     if element.redirect:
                         self.next_scene = globals()[element.redirect]
+                        self.init = True
+                        self._reset_playlists()
+                    if element == self.sort_name:
+                        self._sort_songs("name")
+                    if element == self.sort_length:
+                        self._sort_songs("length")
+
+        if self.playlists.selected or (self.artist2.text != self.artist2.org_text and not self.artist2.active):
+            if self.playlists.selected:
+                playlist = self._get_playlists()[self.username][self.playlists.selected]['songs']
+            else:
+                playlist = self._get_artist_playlists()
+            
+            if playlist:
+                path = self._export_playlist(playlist)
+                self.success_text.text = f"Playlist exported to 'export{path}'!"
+            else:
+                self.error_text.text = "No songs found"
         
         for genre in self.genres:
-            if genre.active:
+            if genre.active and not self.search.active:
                 globals()["playlist_maker"].filters.items[globals()["playlist_maker"].filters.items.index((genre.text, False))] = (genre.text, True)
                 self.next_scene = globals()["playlist_maker"]
                 globals()["playlist_maker"].filter_songs()
@@ -442,10 +554,19 @@ class Library(Scene):
         super().update()
         selected_song = self.search.selected or self.song_list.selected
         if selected_song:
-            globals()["playlist_maker"].new_playlist.append(selected_song)
+            if selected_song == self.search.selected:
+                for song in self._song_list:
+                    if song["name"] == selected_song[0]:
+                        selected_song = globals()["playlist_maker"]._format_song_list([song])[0]
+                        break
+            globals()["playlist_maker"]._reset([selected_song])
             self.search.selected = None
             self.song_list.selected = None
             self.next_scene = globals()["playlist_maker"]
+
+        if self.init:
+            self._reset_playlists()
+            self.init = False
         
     def render(self, screen):
         screen.blit(pygame.image.load(ASSETS["LIBRARY_BG"]), (0, 0))
@@ -457,17 +578,18 @@ class PlaylistMaker(Scene):
         self._song_list = self._load_songs()
         self.new_playlist = []
         self.other_songs = self._get_other_songs()
-        self.username = "Sparky"
+        
         self.ui_elements = [
-            ui.Button(0, 188, 198, 50, text="Home", background=False, redirect="library"),
-            ui.Button(0, 238, 200, 50, text="My Playlists", background=False, redirect="playlist_viewer"),
-            ui.Button(0, 783, 200, 50, text="Settings", background=False),
+            ui.Button(0, 186, 198, 50, text="Home", background=False, redirect="library"),
+            ui.Button(0, 238, 200, 50, text="Make Playlist", background=False),
+            ui.Button(0, 288, 200, 50, text="My Playlists", background=False, redirect="playlist_viewer"),
+            ui.Button(0, 783, 200, 50, text="Settings", background=False, redirect="settings"),
             ui.Button(0, 833, 200, 50, text="Log Out", background=False, redirect="main_menu"),
             (error_text:= ui.TextBox(320, 180, 750, 50, text="", background=False)),
             (filters:= ui.Checkboxes(1125, 270, 200, 45, items=["Rock", "Pop", "RNB", "Rap"], background=False)),
             (playlist:= ui.ItemList(220, 270, 750, 30, items=self.new_playlist, max_items=4)),
             (other_songs:= ui.ItemList(220, 550, 750, 30, items=self.other_songs, max_items=4)),
-            (name:= ui.TextBox(320, 142, 750, 50, text="", editable=True, max_length=40, border_radius=0, background=False)),
+            (name:= ui.TextBox(320, 142, 750, 50, text="", editable=True, max_length=20, border_radius=0, background=False)),
             (filter_button:= ui.Button(1150, 600, 200, 50, text="Filter")),
             (artist:= ui.TextBox(1150, 470, 200, 50, text="Artist", editable=True, max_length=22)),
             (save:= ui.Button(445, 775, 400, 50, text="Save Playlist")),
@@ -481,6 +603,7 @@ class PlaylistMaker(Scene):
         self.playlist = playlist
         self.name = name
         self.name.centred = False
+        self.override = False
         self.filters = filters
 
         self._reset_initial_slider()
@@ -502,6 +625,7 @@ class PlaylistMaker(Scene):
 
     def _reset_initial_slider(self):
         self.playlist.items = self._song_list
+        self.playlist.dy = 0
         self.playlist.update_slider()
         self.playlist.items = self.new_playlist
         
@@ -523,9 +647,12 @@ class PlaylistMaker(Scene):
                 if song["name"] == value.split("  ")[0]:
                     self._song_list.remove(song)
 
+        return self._format_song_list(self._song_list)
+    
+    def _format_song_list(self, song_list):
         final_list = []
         space_width = ui.BUTTON_FONT.render(" ", True, (0, 0, 0)).get_width()
-        for song in self._song_list:
+        for song in song_list:
             entry = ""
             for value in song.values():
                 entry += value
@@ -549,7 +676,7 @@ class PlaylistMaker(Scene):
         if selected_genres:
             self._song_list = [song for song in self._song_list if song["genre"] in selected_genres]
         if self.artist.text != "Artist":
-            self._song_list = [song for song in self._song_list if song["artist"] == self.artist.text]
+            self._song_list = [song for song in self._song_list if song["artist"].lower() == self.artist.text.lower()]
         self.other_songs.items = self._get_other_songs()
 
     def _save_playlist(self):
@@ -562,7 +689,7 @@ class PlaylistMaker(Scene):
         if self.username not in users:
             users[self.username] = {}
 
-        if self.name.text in list(users[self.username].keys()):
+        if self.name.text in list(users[self.username].keys()) and not self.override:
             self.error_text.text = "Playlist name already exists"
         else:
             for item in self.new_playlist:
@@ -578,21 +705,26 @@ class PlaylistMaker(Scene):
                 users[self.username][self.name.text]['img'] = ASSETS["DEFAULT"]
         
             with open(ASSETS["PLAYLISTS"], "w") as f:
-                json.dump(users, f)
+                json.dump(users, f, indent=4)
+
+            self.error_text.text = ""
 
         globals()["playlist_viewer"].new = True
 
-    def _reset(self):
+    def _reset(self, new=None):
+        if not new:
+            new = []
         self.filters.items = [(filter_, False) for filter_ in ["Rock", "Pop", "RNB", "Rap"]]
-        self.new_playlist = []
-        self.playlist.items = self.new_playlist
+        self.new_playlist = new
+        self.playlist.items = new
         self._song_list = self._load_songs()
         self._reset_initial_slider()
         self.other_songs.items = self._get_other_songs()
+        self.other_songs.dy = 0
         self.other_songs.update_slider()
         self._get_user_playlists()
         self.name.org_text = self._get_playlist_num()
-        self.name.text = self._get_playlist_num()
+        self.name.text = self.name.org_text
         self.error_text.text = ""
 
     def process_input(self, events):
@@ -633,7 +765,8 @@ class PlaylistMaker(Scene):
     def update(self):
         super().update()
         self._get_user_playlists()
-        self.name.org_text = self._get_playlist_num()
+        if not self.override:
+            self.name.org_text = self._get_playlist_num()
         self.other_songs.items = self._get_other_songs()
 
     def render(self, screen):
@@ -642,26 +775,28 @@ class PlaylistMaker(Scene):
 
 class PlaylistViewer(Scene):
     def __init__(self):
-        self.username = "Sparky"
+        
         super().__init__()
         self.ui_elements = [
-            ui.Button(0, 188, 198, 50, text="Home", background=False, redirect="library"),
+            ui.Button(0, 186, 198, 50, text="Home", background=False, redirect="library"),
             ui.Button(0, 238, 200, 50, text="Make Playlist", background=False, redirect="playlist_maker"),
-            ui.Button(0, 783, 200, 50, text="Settings", background=False),
+            ui.Button(0, 288, 200, 50, text="My Playlists", background=False),
+            ui.Button(0, 783, 200, 50, text="Settings", background=False, redirect="settings"),
             ui.Button(0, 833, 200, 50, text="Log Out", background=False, redirect="playlist_viewer"),
             (slide:=ui.PlaylistSlide(225, 80, 350, 250, items=self._get_playlists())),
             ui.TextBox(675, 20, 200, 50, text="My Playlists", background=False)
         ]
         self.pop_up_elements = [
             ui.ArbitraryRect(330, 125, 900, 700, colour=ui.COLOURS["WHITE"]),
-            playlist_name:=(ui.TextBox(500, 60, 700, 200, text="", editable=True, max_length=44, background=False)),
+            ui.Button(500, 140, 600, 50, text="", background=False, hover=ASSETS["EDIT"]),
+            playlist_name:=(ui.TextBox(505, 140, 600, 50, text="", editable=True, max_length=20, background=False)),
             exit_button:=(ui.Button(1170, 125, 100, 100, icon=ASSETS["CROSS"])),
-            song_length:=(ui.TextBox(500, 180, 200, 50, text="", background=False)),
-            track_length:=(ui.TextBox(500, 210, 200, 50, text="", background=False)),
+            song_length:=(ui.TextBox(505, 180, 200, 50, text="", background=False)),
+            track_length:=(ui.TextBox(505, 210, 200, 50, text="", background=False)),
             songs:=(ui.ItemList(350, 350, 750, 50, items=[], max_items=6)),
-            delete:=(ui.Button(560, 260, 50, 50, icon=ASSETS["BIN"])),
-            edit:=(ui.Button(510, 260, 50, 50, icon=ASSETS["EDIT"])),
-            image:=(ui.Button(350, 145, 500, 500, icon=ASSETS["DEFAULT"])),
+            delete:=(ui.Button(570, 260, 50, 50, icon=ASSETS["BIN"])),
+            edit:=(ui.Button(520, 260, 50, 50, icon=ASSETS["EDIT"])),
+            image:=(ui.Button(350, 145, 150, 150, icon=ASSETS["DEFAULT"], hover=ASSETS["CHANGE_IMG"])),
             error_text:=(ui.TextBox(330, 290, 900, 50, text="", background=False)),
         ]
 
@@ -677,7 +812,7 @@ class PlaylistViewer(Scene):
         self.deactivated = False
         self.active_elements = self.ui_elements
         self.slide = slide
-        self.slide.scene_colour = (242, 245, 254)
+        self.slide.scene_colour = ui.COLOURS["WHITE"]
         self.new = True
         self.transparent_bg = pygame.Surface((1400, 900), pygame.SRCALPHA)
         self.tb_pos = (163, 0)
@@ -685,7 +820,7 @@ class PlaylistViewer(Scene):
         for element in self.ui_elements:
             if type(element) == ui.TextBox or type(element) == ui.Button:
                 element.font = pygame.font.Font(ui.ASSETS["BOLD"], 20)
-                if element.text == "My Playlists":
+                if element.text == "My Playlists" and type(element) == ui.TextBox:
                     element.font = pygame.font.Font(ui.ASSETS["BOLD"], 36)
 
         for element in self.pop_up_elements:
@@ -697,13 +832,19 @@ class PlaylistViewer(Scene):
                     element.font = pygame.font.Font(ui.ASSETS["BOLD"], 25)
         self.playlist_name.font = pygame.font.Font(ui.ASSETS["BOLD"], 32)
 
-    def _get_playlists(self):
+    def _load_playlist(self):
         with open(ASSETS["PLAYLISTS"], "r") as f:
-            users = json.load(f)
-            self.users = users
-            if self.username not in users:
-                return []
-            return [ui.Playlist({playlist: vals}) for playlist, vals in users[self.username].items()]
+            return json.load(f)
+        
+    def _save_playlist(self, playlist):
+        with open(ASSETS["PLAYLISTS"], "w") as f:
+            json.dump(playlist, f, indent=4)
+
+    def _get_playlists(self):
+        self.users = self._load_playlist()
+        if self.username not in self.users:
+            return []
+        return [ui.Playlist({playlist: vals}) for playlist, vals in self.users[self.username].items()]
 
     def process_input(self, events):
         for event in events:
@@ -718,17 +859,31 @@ class PlaylistViewer(Scene):
                     if element == self.delete:
                         self.users[self.username].pop(self.playlist_name.text)
                         with open(ASSETS["PLAYLISTS"], "w") as f:
-                            json.dump(self.users, f)
+                            json.dump(self.users, f, indent=4)
                         self.slide.items = self._get_playlists()
                         self.deactivated = False
                         self.active_elements = self.ui_elements
 
                     if element == self.edit:
-                        pass
+                        self.deactivated = False
+                        self.active_elements = self.ui_elements
+                        self.next_scene = globals()["playlist_maker"]
+                        self.next_scene._reset(self.songs.items)
+                        self.next_scene.name.text = self.playlist_name.text
+                        self.next_scene.name.org_text = self.playlist_name.text
+                        self.next_scene.override = True
 
                     if element == self.exit_button:
                         self.deactivated = False
                         self.active_elements = self.ui_elements
+
+                    if element == self.image:
+                        result = handle_image_change(self.username, os.path.join(BASE_PATH, "assets/user_images"), (150,150))
+                        try:
+                            pygame.image.load(result)
+                            self._change_playlist_image(result)
+                        except:
+                            self.error_text.text = result
                 else:
                     if element == self.playlist_name:
                         if self.playlist_name.text != self.playlist_name.org_text and self.playlist_name.text != "":
@@ -738,23 +893,26 @@ class PlaylistViewer(Scene):
                     if element.redirect:
                         self.next_scene = globals()[element.redirect]
                             
-
         if self.slide.selected:
             self.deactivated = True
+            self.temp = self.slide.selected
             self.active_elements = self.ui_elements + self.pop_up_elements
             self.handle_pop_up()
+
+    def _change_playlist_image(self, img):
+        self.users[self.username][self.playlist_name.text]["img"] = img
+        self._save_playlist(self.users)
+        self.image.update_icon(img)
+        self.temp.update_image(img)
     
     def _handle_name_change(self):
         if self.playlist_name.text not in self.users[self.username]:
             self.users[self.username][self.playlist_name.text] = self.users[self.username].pop(self.old_name)
-            with open(ASSETS["PLAYLISTS"], "w") as f:
-                json.dump(self.users, f)
+            self._save_playlist(self.users)
             self.slide.items = self._get_playlists()
             self.old_name = self.playlist_name.text
             self.playlist_name.org_text = self.playlist_name.text
-            with open(ASSETS["PLAYLISTS"], "r") as f:
-                users = json.load(f)
-                self.users = users
+            self.users = self._load_playlist()
         else:
             self.error_text.text = "Playlist name already exists"
             self.playlist_name.text = self.old_name
@@ -779,13 +937,25 @@ class PlaylistViewer(Scene):
 
     def handle_pop_up(self):
         self.info = self.slide.selected.old_info
-        self.playlist_name.text = list(self.info.keys())[0]
-        self.old_name = self.playlist_name.text
-        self.playlist_name.org_text = self.playlist_name.text
-        self.song_length.text = f"Total Songs: {len(self.info[self.playlist_name.text]['songs'])}"
-        self.track_length.text = f"Total Length: {round(sum([self._parse_song_length(song) for song in self.info[self.playlist_name.text]['songs']]))} minutes"
-        self.songs.items = self._format_songs(self.info[self.playlist_name.text]['songs'])
-        self.image.update_icon(self.info[self.playlist_name.text]['img'])
+        playlist_name = list(self.info.keys())[0]
+        self.playlist_name.text = playlist_name
+        self.old_name = playlist_name
+        self.playlist_name.org_text = playlist_name
+
+        songs = self.info[playlist_name]['songs']
+        self.song_length.text = f"Total Songs: {len(songs)}"
+        total_length = round(sum(self._parse_song_length(song) for song in songs))
+        self.track_length.text = f"Total Length: {total_length} minutes"
+        self.songs.items = self._format_songs(songs)
+
+        img_path = self.info[playlist_name]['img']
+        if not os.path.exists(img_path):
+            img_path = ASSETS["DEFAULT"]
+            self.users[self.username][playlist_name]["img"] = img_path
+            self._save_playlist(self.users)
+
+        self.image.update_icon(img_path)
+        self.songs.dy = 0
         self.songs.update_slider()
         self.slide.selected = None
 
@@ -810,165 +980,191 @@ class PlaylistViewer(Scene):
 class Settings(Scene):
     def __init__(self):
         super().__init__()
+        
         self.ui_elements = [
-            ui.TextBox(0, 0, 200, 50, text="Settings", background=False, editable=False),
-            ui.TextBox(0, 0, 200, 50, text="Change Username", max_length=22),
-            ui.TextBox(0, 0, 200, 50, text="Change Password", max_length=22),
-            ui.TextBox(0, 0, 200, 50, text="Confirm Password", max_length=22),
-            ui.Button(0, 0, 200, 50, text="Delete Account", redirect="main_menu"),
-            ui.Button(0, 0, 200, 50, text="Back", redirect="library"),
-            ui.DropDown(0, 0, 200, 50, options=["Rock", "Pop", "RNB", "Rap"], selected="Favourite Genre"),
-            ui.TextBox(0, 0, 200, 50, text="Favourite Artist", max_length=40),
+            ui.Button(0, 186, 198, 50, text="Home", background=False, redirect="library"),
+            ui.Button(0, 238, 200, 50, text="Make Playlist", background=False, redirect="playlist_maker"),
+            ui.Button(0, 288, 200, 50, text="My Playlists", background=False, redirect="playlist_viewer"),
+            ui.Button(0, 783, 200, 50, text="Settings", background=False),
+            ui.Button(0, 833, 200, 50, text="Log Out", background=False, redirect="main_menu"),
+            (change_username:= ui.TextBox(180, 225, 300, 50, max_length=22, editable=True)),
+            (change_password:= ui.TextBox(180, 345, 300, 50, max_length=22, editable=True)),
+            (confirm_password:= ui.TextBox(180, 465, 300, 50, max_length=22, editable=True)),
+            (submit:= ui.Button(775, 825, 600, 50, text="Submit")),
+            (confirm:= ui.Button(185, 825, 550, 50, text="Confirm")),
+            (delete_account:= ui.Button(470, 120, 250, 30, text="DELETE ACCOUNT")),
+            (fav_artist:= ui.TextBox(775, 230, 300, 50, editable=True, max_length=22)),
+            (fav_genre:= ui.DropDown(775, 340, 300, 50, options=["Rock", "Pop", "RNB", "Rap"])),
+            (error_text:= ui.TextBox(180, 530, 750, 50, background=False)),
+            (success_text:= ui.TextBox(180, 530, 750, 50, background=False)),
         ]
+
+        self.init = True
+
+        self.change_username = change_username
+        self.change_password = change_password
+        self.confirm_password = confirm_password
+        self.confirm = confirm
+        self.submit = submit
+        self.delete_account = delete_account
+        self.fav_artist = fav_artist
+        self.fav_genre = fav_genre
+        self.error_text = error_text
+        self.success_text = success_text
+
+        for element in self.ui_elements:
+            if type(element) == ui.Button:
+                element.font = pygame.font.Font(ui.ASSETS["BOLD"], 20)
+
+        self.error_text.text_colour = ui.COLOURS["RED"]
+        self.success_text.text_colour = ui.COLOURS["GREEN"]
+        self.error_text.font = pygame.font.Font(ui.ASSETS["BOLD"], 32)
+        self.success_text.font = pygame.font.Font(ui.ASSETS["BOLD"], 32)
+        self.error_text.centred = False
+        self.success_text.centred = False
+
+        self.delete_account.bg_colour = ui.COLOURS["RED"]
+
+    def _get_user_info(self):
+        with open(ASSETS['USERS'], 'r') as f:
+            return json.load(f)
+
+    def _dump_user_info(self, users):
+        with open(ASSETS['USERS'], 'w') as f:
+            json.dump(users, f, indent=4)
+
+    def _save_info(self, info):
+        users = self._get_user_info()
+        users[self.username].update(info)
+        self._dump_user_info(users)
+
+    def _update_username(self):
+        users = self._get_user_info()
+        users[self.change_username.text] = users.pop(self.username)
+        self._dump_user_info(users)
+        self.username = self.change_username.text
+        self.change_username.org_text = self.username
+
+    def _get_account_preferences(self):
+        users = self._get_user_info()
+        return users[self.username]["favourite_artist"], users[self.username]["favourite_genre"]
+
+    def _delete_account(self):
+        users = self._get_user_info()
+        users.pop(self.username)
+        self._dump_user_info(users)
+
+    def _validate_username(self, username):
+        if not username:
+            return (False, "Please enter a username")
+        if username == self.username:
+            return (True, "")
+        if username in self._get_user_info():
+            return (False, "Username already exists")
+        return (True, "")
+        
+    def validate_password(self):
+        if not self.change_password.text:
+            return (True, "UNCHANGED")
+        if self.change_password.text != self.confirm_password.text:
+            return (False, "Passwords do not match")
+        return (True, "")
 
     def process_input(self, events):
         for event in events:
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                self.error_text.text = ""
+                self.success_text.text = ""
             for element in self.ui_elements:
                 element.handle_event(event)
+                if type(element) == ui.Button and element.active:
+                    if element.redirect:
+                        self.next_scene = globals()[element.redirect]
+                        self.init = True
+                    if element == self.confirm:
+                        username = self.change_username.text
+                        user_outcome = self._validate_username(username)
+                        pass_outcome = self.validate_password()
+                        if user_outcome[0] and pass_outcome[0]:
+                            new_password = self.change_password.text if pass_outcome[1] != "UNCHANGED" else self._get_user_info()[self.username]["password"]
+                            self._save_info({"username": username, "password": new_password})
+                            self._update_username()
+                            self.success_text.text = "Account updated!"
+                            self.change_password.text = ""
+                            self.confirm_password.text = ""
+                        else:
+                            self.error_text.text = user_outcome[1] if not user_outcome[0] else pass_outcome[1]
+
+                    if element == self.submit:
+                        fav_artist = self.fav_artist.text
+                        fav_genre = self.fav_genre.selected
+                        self._save_info({"favourite_artist": fav_artist, "favourite_genre": fav_genre})
+                        self.success_text.text = "Preferences saved!"
+
+                    if element == self.delete_account:
+                        self._delete_account()
+                        self.next_scene = globals()["main_menu"]
 
     def update(self):
         super().update()
+        if self.init:
+            self.fav_artist.text, self.fav_genre.selected = self._get_account_preferences()
+            self.fav_artist.org_text = self.fav_artist.text
+            self.change_username.text = self.username
+            self.change_username.org_text = self.username
+            self.init = False
 
     def render(self, screen):
+        screen.blit(pygame.image.load(ASSETS["SETTINGS_BG"]), (0, 0))
         super().render(screen)
 
-class UITest(Scene):
+class Admin(Scene):
     def __init__(self):
         super().__init__()
-        placeholder = [
-    {
-        "name": "Me N my Kup",
-        "artist": "Ken Carson",
-        "genre": "Rap",
-        "length": "3:55"
-    },
-    {
-        "name": "Breathe",
-        "artist": "Yeat",
-        "genre": "Rap",
-        "length": "2:51"
-    },
-    {
-        "name": "90210",
-        "artist": "Travis Scott",
-        "genre": "Rap",
-        "length": "5:40"
-    },
-    {
-        "name": "Miss The Rage",
-        "artist": "Trippie Red",
-        "genre": "Rap",
-        "length": "3:57"
-    },
-    {
-        "name": "levitating",
-        "artist": "Dua Lipa",
-        "genre": "Pop",
-        "length": "3:41"
-    },
-    {
-        "name": "Just Dance",
-        "artist": "Lady Gaga",
-        "genre": "Pop",
-        "length": "4:02"
-    },
-    {
-        "name": "Smooth Criminal",
-        "artist": "Michael Jackson",
-        "genre": "Pop",
-        "length": "4:12"
-    },
-    {
-        "name": "Kill Bill",
-        "artist": "SZA",
-        "genre": "Pop",
-        "length": "2:36"
-    },
-    {
-        "name": "Easy on me",
-        "artist": "Adele",
-        "genre": "Pop",
-        "length": "3:46"
-    },
-    {
-        "name": "Unnamed1",
-        "artist": "Sade",
-        "genre": "RNB",
-        "length": "0:00"
-    },
-    {
-        "name": "Unnamed2",
-        "artist": "Usher",
-        "genre": "RNB",
-        "length": "0:00"
-    },
-    {
-        "name": "Nights",
-        "artist": "Frank Ocean",
-        "genre": "RNB",
-        "length": "0:00"
-    },
-    {
-        "name": "Unnamed3",
-        "artist": "Prince",
-        "genre": "RNB",
-        "length": "0:00"
-    },
-    {
-        "name": "Unnamed4",
-        "artist": "Rich Amiri",
-        "genre": "RNB",
-        "length": "0:00"
-    },
-    {
-        "name": "Unnamed5",
-        "artist": "Foo Fighters",
-        "genre": "Rock",
-        "length": "0:00"
-    },
-    {
-        "name": "Unnamed6",
-        "artist": "Led Zeppelin",
-        "genre": "Rock",
-        "length": "0:00"
-    },
-    {
-        "name": "Unnamed7",
-        "artist": "Nirvana",
-        "genre": "Rock",
-        "length": "0:00"
-    },
-    {
-        "name": "Unnamed8",
-        "artist": "Radiohead",
-        "genre": "Rock",
-        "length": "0:00"
-    },
-    {
-        "name": "505",
-        "artist": "Arctic Monkeys",
-        "genre": "Rock",
-        "length": "0:00"
-    }
-]
-        for song in placeholder:
-            song.pop("genre", None)
-            song.pop("length", None)
-# ui.Button(100, 100, 200, 50, text="Button 1"),
-# ui.TextBox(100, 300, 200, 50, text="Text Box 1", editable=True),
-# ui.TextBox(300, 300, 100, 50, text="Title", background=False),
-# (item_list:= ui.ItemList(700, 30, 500, 25, items=["Item 1", "Item 2", "Item 3", "Item 4", "Item 5", "Item 6", "Item 7", "Item 8", "Item 9", "Item 10"], max_items=7)),
-# ui.DropDown(100, 500, 200, 50, options=["Option 1", "Option 2", "Option 3", "Option 4", "Option 5", "Option 6", "Option 7", "Option 8", "Option 9", "Option 10"]),
-# ui.SearchBox(500, 100, 700, 50, reference=placeholder, background=False),
-# ui.Checkboxes(500, 200, 200, 50, items=["Checkbox 1", "Checkbox 2", "Checkbox 3", "Checkbox 4"], background=False),
+        averages = self._get_average_lengths()
         self.ui_elements = [
-            ui.PlaylistSlide(100, 50, 350, 250, items=[ui.Playlist(item) for item in placeholder]),
+            ui.TextBox(25, 50, 300, 300, text="Rock"),
+            ui.TextBox(375, 50, 300, 300, text="Pop"),
+            ui.TextBox(725, 50, 300, 300, text="RNB"),
+            ui.TextBox(1075, 50, 300, 300, text="Rap"),
+            ui.TextBox(25, 400, 300, 50, text=f"Average Track Length: {averages['Rock']}min"),
+            ui.TextBox(375, 400, 300, 50, text=f"Average Track Length: {averages['Pop']}min"),
+            ui.TextBox(725, 400, 300, 50, text=f"Average Track Length: {averages['RNB']}min"),
+            ui.TextBox(1075, 400, 300, 50, text=f"Average Track Length: {averages['Rap']}min"),
+            ui.Button(600, 600, 200, 50, text="Log out", background=True, redirect="main_menu"),
         ]
+
+        for element in self.ui_elements:
+            if element.text in ["Rock", "Pop", "RNB", "Rap"]:
+                element.font = pygame.font.Font(ui.ASSETS["BOLD"], 50)
+
+    def _get_average_lengths(self):
+        averages = {}
+        with open(ASSETS["SONGS"], "r") as f:
+            songs = json.load(f)
+            for genre in ["Rock", "Pop", "RNB", "Rap"]:
+                songs_for_genre = []
+                for song in songs:
+                    if song['genre'] == genre:
+                        songs_for_genre.append(song)
+                total = sum(self._parse_song_length(song) for song in songs_for_genre)
+                average = round(total / len(songs_for_genre), 2)
+                averages[genre] = average
+
+        return averages
+    
+    def _parse_song_length(self, song):
+        minutes, seconds = song['length'].split(":")
+        minutes, seconds = int(minutes), int(seconds)
+        return minutes + seconds / 60
 
     def process_input(self, events):
         for event in events:
             for element in self.ui_elements:
                 element.handle_event(event)
+                if type(element) == ui.Button and element.active:
+                    if element.redirect:
+                        self.next_scene = globals()[element.redirect]
 
     def update(self):
         super().update()
@@ -977,11 +1173,12 @@ class UITest(Scene):
         screen.fill(ui.COLOURS["WHITE"])
         super().render(screen)
 
-
 globals().update({
     "main_menu": MainMenu(),
     "library": Library(),
     "tutorial": Tutorial(),
     "playlist_maker": PlaylistMaker(),
     "playlist_viewer": PlaylistViewer(),
+    "settings": Settings(),
+    "admin_panel": Admin()
 })

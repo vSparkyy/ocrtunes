@@ -1,1 +1,14 @@
-{"sparky": {"username": "sparky", "password": "123", "full_name": ["sparky", "voltz"], "dob": "04/10/2007", "favourite_artist": ".", "favourite_genre": "Rock"}, "zia": {"username": "zia", "password": "SADDIQUE", "full_name": ["zia", "sadique"], "dob": "22/04/2008", "favourite_artist": "mitski", "favourite_genre": "Pop"}, "ahmed": {"username": "ahmed", "password": "fff", "full_name": ["ahmed", "f"], "dob": "10/10/2000", "favourite_artist": "twee", "favourite_genre": "Pop"}, " ": {"username": " ", "password": " ", "full_name": ["bob", "nigas"], "dob": "22/04/2008", "favourite_artist": "bob", "favourite_genre": "Rap"}, "shrey": {"username": "shrey", "password": "sja", "full_name": ["dj", "seejkgjb"], "dob": "13/01/2008", "favourite_artist": "a", "favourite_genre": "RNB"}, "l": {"username": "l", "password": "l", "full_name": ["sv", "df"], "dob": "04/10/2007", "favourite_artist": "f", "favourite_genre": "Rock"}}
+{
+    "ADMIN": {
+        "username": "ADMIN",
+        "password": "zerodivisionerror",
+        "full_name": [
+            "ADMIN",
+            "ADMIN"
+        ],
+        "dob": "01/01/2000",
+        "favourite_artist": "ADMIN",
+        "favourite_genre": "ADMIN",
+        "ADMIN": true
+    }
+}
