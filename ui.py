@@ -1,4 +1,5 @@
 import pygame
+import math
 import os
 
 pygame.init()
@@ -7,9 +8,10 @@ BASE_PATH = os.path.dirname(os.path.abspath(__file__))
 COLOURS = {
     "LIGHT_BLUE": (179, 197, 251),
     "DARK_BLUE": (97, 122, 247),
+    "NAVY": (46, 74, 92),
     "RED": (255, 0, 0),
     "GREEN": (0, 255, 0),
-    "WHITE": (255, 255, 255),
+    "WHITE": (242, 245, 254),
     "BLACK": (0, 0, 0),
     "CREAM": (250, 235, 214),
     "VANILLA": (254, 253, 211)
@@ -17,7 +19,9 @@ COLOURS = {
 ASSETS = {
     "BOLD": os.path.join(BASE_PATH, "assets/fonts/CorporativeSansRdAlt-Bold.ttf"),
     "REGULAR": os.path.join(BASE_PATH, "assets/fonts/CorporativeSansRdAlt-Medium.ttf"),
-    "TICK": os.path.join(BASE_PATH, "assets/images/tick.png")
+    "TICK": os.path.join(BASE_PATH, "assets/images/tick.png"),
+    "BASE_PLAYLIST_IMG": os.path.join(BASE_PATH, "assets/images/default.png"),
+    "PLAYLIST_INFO": os.path.join(BASE_PATH, "assets/images/playlist_info.png")
 }
 BUTTON_FONT = pygame.font.Font(ASSETS["REGULAR"], 20)
 
@@ -29,6 +33,11 @@ class UIElement:
         self.width = width
         self.height = height
         self.rect = pygame.Rect(x, y, width, height)
+        self.font = BUTTON_FONT
+        self.active = False
+        self.bg_colour = COLOURS["LIGHT_BLUE"]
+        self.active_colour = COLOURS["DARK_BLUE"]
+        self.current_colour = self.bg_colour
 
     def handle_event(self, event):
         pass
@@ -39,19 +48,21 @@ class UIElement:
     def draw(self, screen):
         pass
 
-
 class Button(UIElement):
-    def __init__(self, x, y, width, height, text='', background=True, redirect=None):
+    def __init__(self, x, y, width, height, text='', background=True, redirect=None, icon=None):
         super().__init__(x, y, width, height)
+        if icon:
+            self.icon = pygame.image.load(icon)
+        else:
+            self.icon = None
         self.redirect = redirect
+        self.changed = False
         self.text = text
         self.background = background
-        self.bg_colour = COLOURS["LIGHT_BLUE"]
         self.text_colour = COLOURS["WHITE"] if self.background else COLOURS["BLACK"]
-        self.active_colour = COLOURS["DARK_BLUE"]
-        self.current_colour = self.bg_colour
-        self.active = False
-        self.font = BUTTON_FONT
+
+    def update_icon(self, icon):
+        self.icon = pygame.image.load(icon)
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -66,10 +77,12 @@ class Button(UIElement):
         self.rect.w = width
 
     def draw(self, screen):
-        if self.background:
-            pygame.draw.rect(screen, self.current_colour, self.rect, 0, 25)
-        screen.blit(self.txt_surface, (self.rect.x + (self.rect.width - self.txt_surface.get_width()) // 2, self.rect.y + (self.rect.height - self.txt_surface.get_height()) // 2))
-
+        if not self.icon:
+            if self.background:
+                pygame.draw.rect(screen, self.current_colour, self.rect, 0, 25)
+            screen.blit(self.txt_surface, (self.rect.x + (self.rect.width - self.txt_surface.get_width()) // 2, self.rect.y + (self.rect.height - self.txt_surface.get_height()) // 2))
+        else:
+            screen.blit(self.icon, (self.rect.x, self.rect.y))
 
 class TextBox(UIElement):
     def __init__(self, x, y, width, height, text='', max_length=float('inf'), background=True, editable=False, border_radius=5):
@@ -77,13 +90,8 @@ class TextBox(UIElement):
         self.background = background
         self.border_radius = border_radius
         self.max_length = max_length
-        self.bg_colour = COLOURS["LIGHT_BLUE"]
-        self.active_colour = COLOURS["DARK_BLUE"]
         self.text_colour = COLOURS["WHITE"] if self.background else COLOURS["BLACK"]
-        self.current_colour = self.bg_colour
         self.text = self.org_text = text
-        self.font = BUTTON_FONT
-        self.editing = False
         self.editable = editable
         self.centred = True
         self.anti_aliasing = True
@@ -94,29 +102,28 @@ class TextBox(UIElement):
                 if self.rect.collidepoint(event.pos):
                     if self.text:
                         self.text = ''
-                    self.editing = not self.editing
+                    self.active = not self.active
                 else:
-                    self.editing = False
+                    self.active = False
             if event.type == pygame.KEYDOWN:
-                if self.editing:
+                if self.active:
                     if event.key == pygame.K_BACKSPACE:
                         self.text = self.text[:-1]
                     elif event.key != pygame.K_RETURN and len(self.text) < self.max_length:
                         self.text += event.unicode
                     elif event.key == pygame.K_RETURN:
-                        self.editing = False
+                        self.active = False
 
     def update(self):
-        if not self.editing and not self.text:
+        if not self.active and not self.text:
             self.text = self.org_text
         self.txt_surface = self.font.render(self.text, self.anti_aliasing, self.text_colour)
-        self.current_colour = self.active_colour if self.editing else self.bg_colour
+        self.current_colour = self.active_colour if self.active else self.bg_colour
 
     def draw(self, screen):
         if self.background:
             pygame.draw.rect(screen, self.current_colour, self.rect, 0, self.border_radius)
         screen.blit(self.txt_surface, (self.rect.x + ((self.rect.width - self.txt_surface.get_width()) // 2 if self.centred else 20) , self.rect.y + (self.rect.height - self.txt_surface.get_height()) // 2))
-
 
 class SearchBox(TextBox):
     def __init__(self, x, y, width, height, text='Search', max_length=float('inf'), reference=[], background=True, max_items=10):
@@ -129,7 +136,7 @@ class SearchBox(TextBox):
     
     def handle_event(self, event):
         super().handle_event(event)
-        if not self.editing:
+        if not self.active:
             self.selected = None
 
         for item, rect in self.search_rects:
@@ -141,11 +148,11 @@ class SearchBox(TextBox):
     
     def draw(self, screen):
         super().draw(screen)
-        if self.editing:
+        if self.active:
             self._get_search_rects()
             for item, rect in self.search_rects:
                 pygame.draw.rect(screen, self.bg_colour, rect)
-                pygame.draw.rect(screen, COLOURS["BLACK"], rect, 1)  # Adding a thin black outline
+                pygame.draw.rect(screen, COLOURS["BLACK"], rect, 1)
                 txt_surface = self.font.render(item[0], True, self.text_colour)
                 screen.blit(txt_surface, (rect.x + 20, rect.y + (rect.height - txt_surface.get_height()) // 2))
 
@@ -160,19 +167,13 @@ class SearchBox(TextBox):
                 break
             rect = pygame.Rect(self.x, self.y + self.height * (i + 1), self.width, self.height)
             self.search_rects.append((item, rect))
-
     
 class DropDown(UIElement):
     def __init__(self, x, y, width, height, options, selected=None):
         super().__init__(x, y, width, height)
         self.options = options
         self.selected = selected or options[0]
-        self.font = BUTTON_FONT
-        self.bg_colour = COLOURS["LIGHT_BLUE"]
-        self.active_colour = COLOURS["DARK_BLUE"]
-        self.current_colour = self.bg_colour
         self.text_colour = COLOURS["WHITE"]
-        self.active = False
         self.get_option_rects()
 
     def handle_event(self, event):
@@ -215,12 +216,12 @@ class ItemList(UIElement):
         super().__init__(x, y, width, height)
         self.items = items
         self.font = BUTTON_FONT
-        self.bg_colour = COLOURS["DARK_BLUE"]
         self.slider_colour = COLOURS["LIGHT_BLUE"]
+        self.bg_colour = COLOURS["DARK_BLUE"]
+        self.current_colour = self.bg_colour
         self.active_colour = self.slider_colour
         self.text_colour = COLOURS["BLACK"]
         self.scene_colour = COLOURS["WHITE"]
-        self.current_colour = self.bg_colour
         self.offset = 20
         self.max_items = max_items
         self.selected = None
@@ -264,7 +265,7 @@ class ItemList(UIElement):
         height = min(self.max_height, total_height)
         if total_height > self.max_height:
             height -= 10 * (len(self.items)-self.max_items)
-        self.slider_rect = pygame.Rect(self.x + self.width + 20, self.y, 20, height)
+        self.slider_rect = pygame.Rect(self.x + self.width + self.offset, self.y, 20, height)
 
     def update(self):
         pixel_offset = self.dy / 10 * (self.height + self.offset)
@@ -296,7 +297,6 @@ class Checkboxes(UIElement):
         self.font = BUTTON_FONT
         self.tick = pygame.image.load(ASSETS["TICK"])
         self.checkbox_colour = COLOURS["LIGHT_BLUE"]
-        self.bg_colour = COLOURS["DARK_BLUE"]
         self.text_colour = COLOURS["BLACK"]
         self.selected = []
         self.background = background
@@ -330,3 +330,150 @@ class Checkboxes(UIElement):
             rect = pygame.Rect(self.x, self.y + self.height * i, self.width, self.height)
             checkbox_rect = pygame.Rect(self.x + 200, rect.y, 32, 32)
             self.checkbox_rects.append((item, rect, checkbox_rect))
+
+class Playlist():
+    def __init__(self, info={}):
+        self.info = info
+        self.old_info = info
+        self.rect = None
+        self.colour = COLOURS["LIGHT_BLUE"]
+        self.text_colour = COLOURS["BLACK"]
+        self.font = BUTTON_FONT
+        self.active = False
+        self._process_info()
+        self.image = pygame.image.load(ASSETS["BASE_PLAYLIST_IMG"])
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.rect.collidepoint(event.pos):
+                self.active = not self.active
+
+    def _process_info(self):
+        for v in self.info.values():
+            for k, val in v.items():
+                if k == "img":
+                    self.image = pygame.image.load(val)
+                elif k == "songs":
+                    self.info = {
+                        "Name": list(self.info.keys())[0],
+                        "Songs": str(len(val)),
+                        "Track Length": self._get_song_duration(val)+" minutes"
+                    }
+
+    def _get_song_duration(self, songs):
+        total_minutes = sum(int(song['length'].split(":")[0]) for song in songs)
+        total_seconds = sum(int(song['length'].split(":")[1]) for song in songs)
+        total = total_minutes + total_seconds / 60
+        return str(round(total))
+
+    def update_rect(self, rect):
+        self.rect = rect
+
+    def get_text(self):
+        self.txt = "\n".join([f"{k}: {v}" for k, v in self.info.items()])
+        lines = self.txt.split('\n')
+        self.text_surface = pygame.Surface((self.rect.width, self.rect.height), pygame.SRCALPHA)
+        y_offset = self.rect.height - len(lines) * self.font.get_height() - 5
+        for line in lines:
+            line_surface = self.font.render(line, True, self.text_colour)
+            self.text_surface.blit(line_surface, (0, y_offset))
+            y_offset += line_surface.get_height()
+
+    def draw(self, screen):
+        pygame.draw.rect(screen, COLOURS["LIGHT_BLUE"], self.rect, 0, 25)
+        screen.blit(self.text_surface, (self.rect.x + 20, self.rect.y + (self.rect.height - self.text_surface.get_height()) // 2))
+        screen.blit(self.image, (self.rect.x+20, self.rect.y+20))
+
+    def __len__(self):
+        return len(self.info)
+
+class PlaylistSlide(ItemList):
+    def __init__(self, x, y, width, height, max_len=3, max_height=3, items=[]):
+        self.max_len = max_len
+        super().__init__(x, y, width, height, items, max_items=max_height)
+        if not all(type(item) == Playlist for item in items):
+            raise Exception
+        
+        self.max_height = (self.height+self.offset) * self.max_items
+        
+        self.top_rect.width = (self.width+self.offset) * self.max_len
+        self.bottom_rect.width = (self.width+self.offset) * self.max_len
+        
+        self.update_slider()
+
+    def handle_event(self, event):
+        for item in self.items:
+            item.handle_event(event)
+
+        mouse_pos = pygame.mouse.get_pos()
+        buttons = pygame.mouse.get_pressed()
+        if buttons[0]:
+            if self.slider_rect.collidepoint(mouse_pos):
+                self.active = True
+                self.active_colour = self.bg_colour
+            
+        else:
+            self.active = False
+            self.active_colour = self.slider_colour
+        
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            for item in self.items:
+                if item.rect.collidepoint(event.pos):
+                    self.selected = item
+            if self.slider_rect.collidepoint(event.pos):
+                self.old_y = mouse_pos[1]
+        
+        if self.active:
+            dy = mouse_pos[1] - self.old_y
+            if self.slider_rect.y + dy >= self.y and self.slider_rect.y + dy + self.slider_rect.height <= self.y + self.max_height:
+                self.dy -= dy
+                self.slider_rect.y += dy
+                self.old_y = mouse_pos[1]
+
+    def update(self):
+        super().update()
+        pixel_offset = self.dy / 10 * (self.height + self.offset)
+        self.get_item_rects(pixel_offset)
+        for item in self.items:
+            item.get_text()
+
+    def draw(self, screen):
+        pygame.draw.rect(screen, self.active_colour, self.slider_rect, 0, 25)
+        for item in self.items:
+            if item.rect.y < self.y + self.max_height + self.offset and item.rect.y + self.height > self.y:
+                item.draw(screen)
+
+        pygame.draw.rect(screen, self.scene_colour, self.top_rect)
+        pygame.draw.rect(screen, self.scene_colour, self.bottom_rect)
+
+    def update_slider(self):
+        total_height = (self.height + self.offset) * math.ceil((len(self.items)/self.max_len))
+        height = min(self.max_height, total_height)
+        x_offset = (self.rect.width + self.offset) * self.max_len
+        if total_height > self.max_height:
+            height -= 10 * (math.ceil(len(self.items)/self.max_len)-self.max_items)
+        self.slider_rect = pygame.Rect(self.x + x_offset, self.y, 20, height)
+
+    def get_item_rects(self, dy=0):
+        x_offset = 0
+        y_offset = 0
+        for item in self.items:
+            rect = pygame.Rect(self.x + (self.width + self.offset) * x_offset, (self.y + ((self.height + self.offset) * y_offset)) + dy, self.width, self.height)
+            item.update_rect(rect)
+            if x_offset == self.max_len - 1:
+                x_offset = 0
+                y_offset += 1
+            else:
+                x_offset += 1
+
+class ArbitraryRect(UIElement):
+    def __init__(self, x, y, width, height, colour=COLOURS["LIGHT_BLUE"], border_radius=5):
+        super().__init__(x, y, width, height)
+        self.border_radius = border_radius
+        self.colour = colour
+
+    def handle_event(self, event):
+        pass
+
+    def draw(self, screen):
+        pygame.draw.rect(screen, self.colour, self.rect, 0, self.border_radius)
