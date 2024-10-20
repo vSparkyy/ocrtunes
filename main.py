@@ -2,7 +2,6 @@ import pygame
 import scenes
 import sys
 
-
 WIDTH, HEIGHT = (1400, 900)
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("OCRtunes")
@@ -10,7 +9,7 @@ pygame.init()
 pygame.key.set_repeat(250, 50)
 
 clock = pygame.time.Clock()
-current_scene = scenes.Library()
+current_scene = scenes.PlaylistViewer()
 
 while True:
     clock.tick(60)
