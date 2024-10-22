@@ -195,12 +195,14 @@ class DropDown(UIElement):
         self.get_option_rects()
 
     def handle_event(self, event):
-        super().handle_event(event)
-        if self.active:
-            for _, rect in self.option_rects:
-                if rect.collidepoint(event.pos):
-                    self.selected, self.listed_options[self.option_rects.index((_, rect))] = self.listed_options[self.option_rects.index((_, rect))], self.selected
-                    self.active = False
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.rect.collidepoint(event.pos):
+                self.active = not self.active
+            if self.active:
+                for _, rect in self.option_rects:
+                    if rect.collidepoint(event.pos):
+                        self.selected, self.listed_options[self.option_rects.index((_, rect))] = self.listed_options[self.option_rects.index((_, rect))], self.selected
+                        self.active = False
 
     def update(self):
         self.dd_colour = self.bg_colour

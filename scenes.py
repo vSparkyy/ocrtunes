@@ -199,7 +199,7 @@ class Tutorial(Scene):
             (full_name:= ui.TextBox(380, 200, 600, 45, text="Full Name", editable=True, max_length=40)),
             (dob:= ui.TextBox(480, 280, 400, 45, text="Birthday (DD/MM/YYYY)", editable=True, max_length=10)),
             (favourite_artist:= ui.TextBox(430, 360, 500, 45, text="Favourite Artist", editable=True, max_length=40)),
-            (favourite_genre:= ui.DropDown(430, 440, 500, 45, options=["Rock", "RNB", "Pop", "Rap"], selected="Favourite Genre")),
+            (favourite_genre:= ui.DropDown(430, 440, 500, 45, options=["Afrobeats", "RNB", "Pop", "Rap"], selected="Favourite Genre")),
         ]
         
         self.full_name = full_name
@@ -318,13 +318,13 @@ class Library(Scene):
             ui.Button(0, 833, 200, 50, text="Log Out", background=False, redirect="main_menu"),
             (sort_name:= ui.Button(255, 362, 50, 50, icon=ASSETS["SORT"], background=False)),
             (sort_length:= ui.Button(937, 362, 50, 50, icon=ASSETS["SORT"], background=False)),
-            (rock:= ui.Button(172, 170, 200, 100, text="Rock", background=False)),
+            (Afrobeats:= ui.Button(172, 170, 200, 100, text="Afrobeats", background=False)),
             (rap:= ui.Button(325, 170, 200, 100, text="Rap", background=False)),
             (pop:= ui.Button(475, 170, 200, 100, text="Pop", background=False)),
             (rnb:= ui.Button(630, 170, 200, 100, text="RNB", background=False)),
             (search:= ui.SearchBox(250, 18, 760, 60, reference=self._song_list, background=False)),
             (artist:= ui.TextBox(1055, 110, 300, 50, text="Artist", editable=True, max_length=22)),
-            (genre:= ui.DropDown(1250, 170, 60, 40, options=["Rock", "Pop", "RNB", "Rap"], selected="Genre")),
+            (genre:= ui.DropDown(1250, 170, 60, 40, options=["Afrobeats", "Pop", "RNB", "Rap"], selected="Genre")),
             (length:= ui.TextBox(1090, 170, 100, 40, text="Length(m)", editable=True, max_length=2)),
             (song_num:= ui.DropDown(1190, 170, 60, 40, options=[str(i) for i in range(1, 6)], selected="Songs")),
             (confirm:= ui.Button(1055, 415, 300, 30, text="Confirm")),
@@ -344,11 +344,11 @@ class Library(Scene):
         self.song_num = song_num
         self.sort_name = sort_name
         self.sort_length = sort_length
-        self.rock = rock
+        self.Afrobeats = Afrobeats
         self.pop = pop
         self.rnb = rnb
         self.rap = rap
-        self.genres = [self.rock, self.pop, self.rnb, self.rap]
+        self.genres = [self.Afrobeats, self.pop, self.rnb, self.rap]
         self.song_list = song_list
         self.song_list.scene_colour = ui.COLOURS["WHITE"]
         self.search = search
@@ -407,8 +407,6 @@ class Library(Scene):
             formatted_songs.sort(key=lambda x: x[3].split(":")[0]*60 + x[3].split(":")[1])
 
         self.song_list.items = self._get_song_list(songs=formatted_songs)
-        self._song_list
-            
 
     def _parse_song_length(self, song):
         minutes, seconds = song['length'].split(":")
@@ -520,6 +518,11 @@ class Library(Scene):
                         if playlist:
                             self._save_playlist(playlist)
                             self.success_text.text = "Playlist Saved!"
+                            self.genre.selected = "Genre"
+                            self.length.text = "Length(m)"
+                            self.song_num.selected = "Songs"
+                            self.artist.text = "Artist"
+                            self._reset_playlists()
                     if element.text == "Make Playlist":
                         globals()["playlist_maker"]._reset()
                     if element.redirect:
@@ -586,7 +589,7 @@ class PlaylistMaker(Scene):
             ui.Button(0, 783, 200, 50, text="Settings", background=False, redirect="settings"),
             ui.Button(0, 833, 200, 50, text="Log Out", background=False, redirect="main_menu"),
             (error_text:= ui.TextBox(320, 180, 750, 50, text="", background=False)),
-            (filters:= ui.Checkboxes(1125, 270, 200, 45, items=["Rock", "Pop", "RNB", "Rap"], background=False)),
+            (filters:= ui.Checkboxes(1125, 270, 200, 45, items=["Afrobeats", "Pop", "RNB", "Rap"], background=False)),
             (playlist:= ui.ItemList(220, 270, 750, 30, items=self.new_playlist, max_items=4)),
             (other_songs:= ui.ItemList(220, 550, 750, 30, items=self.other_songs, max_items=4)),
             (name:= ui.TextBox(320, 142, 750, 50, text="", editable=True, max_length=20, border_radius=0, background=False)),
@@ -714,7 +717,7 @@ class PlaylistMaker(Scene):
     def _reset(self, new=None):
         if not new:
             new = []
-        self.filters.items = [(filter_, False) for filter_ in ["Rock", "Pop", "RNB", "Rap"]]
+        self.filters.items = [(filter_, False) for filter_ in ["Afrobeats", "Pop", "RNB", "Rap"]]
         self.new_playlist = new
         self.playlist.items = new
         self._song_list = self._load_songs()
@@ -775,7 +778,7 @@ class PlaylistMaker(Scene):
 
 class PlaylistViewer(Scene):
     def __init__(self):
-        
+        self.username = None
         super().__init__()
         self.ui_elements = [
             ui.Button(0, 186, 198, 50, text="Home", background=False, redirect="library"),
@@ -980,7 +983,6 @@ class PlaylistViewer(Scene):
 class Settings(Scene):
     def __init__(self):
         super().__init__()
-        
         self.ui_elements = [
             ui.Button(0, 186, 198, 50, text="Home", background=False, redirect="library"),
             ui.Button(0, 238, 200, 50, text="Make Playlist", background=False, redirect="playlist_maker"),
@@ -994,7 +996,7 @@ class Settings(Scene):
             (confirm:= ui.Button(185, 825, 550, 50, text="Confirm")),
             (delete_account:= ui.Button(470, 120, 250, 30, text="DELETE ACCOUNT")),
             (fav_artist:= ui.TextBox(775, 230, 300, 50, editable=True, max_length=22)),
-            (fav_genre:= ui.DropDown(775, 340, 300, 50, options=["Rock", "Pop", "RNB", "Rap"])),
+            (fav_genre:= ui.DropDown(775, 340, 300, 50, options=["Afrobeats", "Pop", "RNB", "Rap"])),
             (error_text:= ui.TextBox(180, 530, 750, 50, background=False)),
             (success_text:= ui.TextBox(180, 530, 750, 50, background=False)),
         ]
@@ -1123,11 +1125,11 @@ class Admin(Scene):
         super().__init__()
         averages = self._get_average_lengths()
         self.ui_elements = [
-            ui.TextBox(25, 50, 300, 300, text="Rock"),
+            ui.TextBox(25, 50, 300, 300, text="Afrobeats"),
             ui.TextBox(375, 50, 300, 300, text="Pop"),
             ui.TextBox(725, 50, 300, 300, text="RNB"),
             ui.TextBox(1075, 50, 300, 300, text="Rap"),
-            ui.TextBox(25, 400, 300, 50, text=f"Average Track Length: {averages['Rock']}min"),
+            ui.TextBox(25, 400, 300, 50, text=f"Average Track Length: {averages['Afrobeats']}min"),
             ui.TextBox(375, 400, 300, 50, text=f"Average Track Length: {averages['Pop']}min"),
             ui.TextBox(725, 400, 300, 50, text=f"Average Track Length: {averages['RNB']}min"),
             ui.TextBox(1075, 400, 300, 50, text=f"Average Track Length: {averages['Rap']}min"),
@@ -1135,14 +1137,14 @@ class Admin(Scene):
         ]
 
         for element in self.ui_elements:
-            if element.text in ["Rock", "Pop", "RNB", "Rap"]:
+            if element.text in ["Afrobeats", "Pop", "RNB", "Rap"]:
                 element.font = pygame.font.Font(ui.ASSETS["BOLD"], 50)
 
     def _get_average_lengths(self):
         averages = {}
         with open(ASSETS["SONGS"], "r") as f:
             songs = json.load(f)
-            for genre in ["Rock", "Pop", "RNB", "Rap"]:
+            for genre in ["Afrobeats", "Pop", "RNB", "Rap"]:
                 songs_for_genre = []
                 for song in songs:
                     if song['genre'] == genre:

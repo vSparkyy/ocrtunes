@@ -24,6 +24,24 @@
         "length": "3:57"
     },
     {
+        "name": "Lean 4 real",
+        "artist": "Playboi Carti",
+        "genre": "Rap",
+        "length": "2:57"
+    },
+    {
+        "name": "Wyclef Jean",
+        "artist": "Young Thug",
+        "genre": "Rap",
+        "length": "3:56"
+    },
+    {
+        "name": "Summer Bummer",
+        "artist": "Lana Del Rey",
+        "genre": "Pop",
+        "length": "4:21"
+    },
+    {
         "name": "Levitating",
         "artist": "Dua Lipa",
         "genre": "Pop",
@@ -42,10 +60,10 @@
         "length": "4:12"
     },
     {
-        "name": "Kill Bill",
-        "artist": "SZA",
+        "name": "Havanna ft.Young Thug",
+        "artist": "Camila Cabello",
         "genre": "Pop",
-        "length": "2:36"
+        "length": "3:37"
     },
     {
         "name": "Easy on me",
@@ -54,63 +72,75 @@
         "length": "3:46"
     },
     {
-        "name": "Unnamed1",
-        "artist": "Sade",
+        "name": "No Love",
+        "artist": "Summer Walker",
         "genre": "RNB",
-        "length": "0:00"
+        "length": "3:51"
     },
     {
-        "name": "Unnamed2",
-        "artist": "Usher",
+        "name": "Ciao!",
+        "artist": "Bryson Tiller",
         "genre": "RNB",
-        "length": "0:00"
+        "length": "2:05"
     },
     {
         "name": "Nights",
         "artist": "Frank Ocean",
         "genre": "RNB",
-        "length": "0:00"
+        "length": "5:07"
     },
     {
-        "name": "Unnamed3",
-        "artist": "Prince",
+        "name": "Gravity",
+        "artist": "Brent Faiyaz",
         "genre": "RNB",
-        "length": "0:00"
+        "length": "3:35"
     },
     {
-        "name": "Unnamed4",
-        "artist": "Rich Amiri",
+        "name": "L o s e M y M i n d",
+        "artist": "PARTYNEXTDOOR",
         "genre": "RNB",
-        "length": "0:00"
+        "length": "3:07"
     },
     {
-        "name": "Unnamed5",
-        "artist": "Foo Fighters",
-        "genre": "Rock",
-        "length": "0:00"
+        "name": "Kill Bill",
+        "artist": "SZA",
+        "genre": "RNB",
+        "length": "2:36"
     },
     {
-        "name": "Unnamed6",
-        "artist": "Led Zeppelin",
-        "genre": "Rock",
-        "length": "0:00"
+        "name": "Cheat On Me",
+        "artist": "Burna Boy",
+        "genre": "afrobeats",
+        "length": "3:43"
     },
     {
-        "name": "Unnamed7",
-        "artist": "Nirvana",
-        "genre": "Rock",
-        "length": "0:00"
+        "name": "Active",
+        "artist": "Asake",
+        "genre": "Afrobeats",
+        "length": "2:53"
     },
     {
-        "name": "Unnamed8",
-        "artist": "Radiohead",
-        "genre": "Rock",
-        "length": "0:00"
+        "name": "What do you mean",
+        "artist": "Jhus",
+        "genre": "Afrobeats",
+        "length": "3:31"
     },
     {
-        "name": "505",
-        "artist": "Arctic Monkeys",
-        "genre": "Rock",
-        "length": "0:00"
+        "name": "System",
+        "artist": "Wizkid",
+        "genre": "Afrobeats",
+        "length": "3:02"
+    },
+    {
+        "name": "Higher",
+        "artist": "Tems",
+        "genre": "Afrobeats",
+        "length": "3:16"
+    },
+    {
+        "name": "Soweto",
+        "artist": "Victony",
+        "genre": "Afrobeats",
+        "length": "3:40"
     }
 ]
