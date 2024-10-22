@@ -308,6 +308,7 @@ class Library(Scene):
         super().__init__()
         self.songs = self._get_song_list()
         self.init = True
+        self.redirected = True
         self.ui_elements = [
             (song_list:= ui.ItemList(180, 400, 750, 50, items=self.songs, max_items=7)),
             ui.TextBox(520, 350, 100, 50, text=f"Title{' '*35}Artist{' '*32}Genre{' '*30}Duration", background=False),
@@ -318,7 +319,7 @@ class Library(Scene):
             ui.Button(0, 833, 200, 50, text="Log Out", background=False, redirect="main_menu"),
             (sort_name:= ui.Button(255, 362, 50, 50, icon=ASSETS["SORT"], background=False)),
             (sort_length:= ui.Button(937, 362, 50, 50, icon=ASSETS["SORT"], background=False)),
-            (Afrobeats:= ui.Button(172, 170, 200, 100, text="Afrobeats", background=False)),
+            (afrobeats:= ui.Button(172, 170, 200, 100, text="Afrobeats", background=False)),
             (rap:= ui.Button(325, 170, 200, 100, text="Rap", background=False)),
             (pop:= ui.Button(475, 170, 200, 100, text="Pop", background=False)),
             (rnb:= ui.Button(630, 170, 200, 100, text="RNB", background=False)),
@@ -344,11 +345,11 @@ class Library(Scene):
         self.song_num = song_num
         self.sort_name = sort_name
         self.sort_length = sort_length
-        self.Afrobeats = Afrobeats
+        self.afrobeats = afrobeats
         self.pop = pop
         self.rnb = rnb
         self.rap = rap
-        self.genres = [self.Afrobeats, self.pop, self.rnb, self.rap]
+        self.genres = [self.afrobeats, self.pop, self.rnb, self.rap]
         self.song_list = song_list
         self.song_list.scene_colour = ui.COLOURS["WHITE"]
         self.search = search
@@ -528,7 +529,6 @@ class Library(Scene):
                     if element.redirect:
                         self.next_scene = globals()[element.redirect]
                         self.init = True
-                        self._reset_playlists()
                     if element == self.sort_name:
                         self._sort_songs("name")
                     if element == self.sort_length:
@@ -590,8 +590,8 @@ class PlaylistMaker(Scene):
             ui.Button(0, 833, 200, 50, text="Log Out", background=False, redirect="main_menu"),
             (error_text:= ui.TextBox(320, 180, 750, 50, text="", background=False)),
             (filters:= ui.Checkboxes(1125, 270, 200, 45, items=["Afrobeats", "Pop", "RNB", "Rap"], background=False)),
-            (playlist:= ui.ItemList(220, 270, 750, 30, items=self.new_playlist, max_items=4)),
-            (other_songs:= ui.ItemList(220, 550, 750, 30, items=self.other_songs, max_items=4)),
+            (playlist:= ui.ItemList(220, 258, 750, 30, items=self.new_playlist, max_items=5, offset=12)),
+            (other_songs:= ui.ItemList(220, 550, 750, 30, items=self.other_songs, max_items=5, offset=12)),
             (name:= ui.TextBox(320, 142, 750, 50, text="", editable=True, max_length=20, border_radius=0, background=False)),
             (filter_button:= ui.Button(1150, 600, 200, 50, text="Filter")),
             (artist:= ui.TextBox(1150, 470, 200, 50, text="Artist", editable=True, max_length=22)),
@@ -618,7 +618,6 @@ class PlaylistMaker(Scene):
             if type(element) == ui.TextBox or type(element) == ui.Button:
                 element.font = pygame.font.Font(ui.ASSETS["BOLD"], 20)
             elif type(element) == ui.ItemList:
-                element.offset = 12
                 element.scene_colour = ui.COLOURS['LIGHT_BLUE']
                 element.slider_colour = ui.COLOURS['DARK_BLUE']
                 element.bg_colour = ui.COLOURS['CREAM']
@@ -674,6 +673,7 @@ class PlaylistMaker(Scene):
                 length += 1
 
     def filter_songs(self):
+        self._reset()
         self._song_list = self._load_songs()
         selected_genres = [filter_[0] for filter_ in self.filters.items if filter_[1]]
         if selected_genres:
